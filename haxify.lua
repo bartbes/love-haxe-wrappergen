@@ -227,10 +227,12 @@ function emitOverload(o, types)
 	for i, v in ipairs(o.arguments or {}) do
 		v.type = typeMap(v.type)
 		types[v.type] = true
+
 		if v.name == "..." then
 			table.insert(args, ("args:Rest<%s>"):format(v.type))
 		else
-			table.insert(args, v.name .. ":" .. v.type)
+			local arg = (v.default and "?" or "") .. v.name .. ":" .. v.type
+			table.insert(args, arg)
 		end
 	end
 	local retType = "Void"
