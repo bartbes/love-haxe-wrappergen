@@ -2,25 +2,6 @@
 
 api = require "love-api.love_api"
 
--- A workaround, rename the event enum
-for i, v in ipairs(api.modules) do
-	if v.name == "event" then
-		v.enums[1].name = "EventType"
-
-		-- Weeeeeee
-		for i, v in ipairs(v.functions) do
-			for j, w in ipairs(v.variants or {}) do
-				for k, x in ipairs(w.arguments or {}) do
-					if x.type == "Event" then
-						x.type = "EventType"
-					end
-				end
-			end
-		end
-		break
-	end
-end
-
 do -- THIS IS AN UGLY HACK
 	local lovetypes =
 	{
@@ -78,7 +59,7 @@ do -- THIS IS AN UGLY HACK
 		GamepadAxis = "love.joystick",
 		GamepadButton = "love.joystick",
 		JoystickHat = "love.joystick",
-		Joystick = "love.joystick", -- FIXME
+		Joystick = "love.joystick",
 		JoystickInputType = "love.joystick",
 		KeyConstant = "love.keyboard",
 		Scancode = "love.keyboard",
@@ -116,7 +97,7 @@ do -- THIS IS AN UGLY HACK
 		SoundData = "love.sound",
 		PowerState = "love.system",
 		Channel = "love.thread",
-		Thread = "love.thread", -- FIXME
+		Thread = "love.thread",
 		VideoStream = "love.video",
 		FullscreenType = "love.window",
 		MessageBoxType = "love.window",
@@ -324,7 +305,7 @@ function emitModule(m, luaName)
 	local prefix = moduleName:gsub("%.", "/") .. "/"
 	emitHeader(out, moduleName)
 	table.insert(out, ("@:native(\"%s\")"):format(moduleName))
-	table.insert(out, ("extern class %s"):format(capitalize(luaName or m.name)))
+	table.insert(out, ("extern class %s"):format(capitalize(luaName or (m.name .. "Module"))))
 	table.insert(out, "{")
 
 	for i, v in ipairs(m.functions) do
@@ -346,7 +327,7 @@ function emitModule(m, luaName)
 	end
 
 	table.insert(out, 2, resolveImports(types, moduleName))
-	files[prefix .. capitalize(luaName or m.name) .. ".hx"] = table.concat(out, "\n")
+	files[prefix .. capitalize(luaName or (m.name .. "Module")) .. ".hx"] = table.concat(out, "\n")
 	return files
 end
 
