@@ -271,7 +271,13 @@ function emitEnum(e, packageName)
 	return {[e.name .. ".hx"] = table.concat(out, "\n")}
 end
 
+local headerComment = [[
+// This file was generated using the LÖVE/Haxe Wrapper Generator
+// See https://github.com/bartbes/love-haxe-wrappergen
+]]
+
 function emitHeader(out, packageName)
+	table.insert(out, headerComment)
 	table.insert(out, ("package %s;"):format(packageName))
 	table.insert(out, "import haxe.extern.Rest;")
 	table.insert(out, "import lua.Table;")
@@ -292,7 +298,7 @@ function emitType(t, packageName)
 	end
 
 	table.insert(out, "}")
-	table.insert(out, 2, resolveImports(types, packageName))
+	table.insert(out, 3, resolveImports(types, packageName))
 	return {[t.name .. ".hx"] = table.concat(out, "\n")}
 end
 
@@ -326,7 +332,7 @@ function emitModule(m, luaName)
 		mergeTables(files, emitType(v, moduleName), prefix)
 	end
 
-	table.insert(out, 2, resolveImports(types, moduleName))
+	table.insert(out, 3, resolveImports(types, moduleName))
 	files[prefix .. capitalize(luaName or (m.name .. "Module")) .. ".hx"] = table.concat(out, "\n")
 	return files
 end
