@@ -113,6 +113,7 @@ do
 		mixed = "Dynamic",
 		value = "Dynamic",
 		any = "Dynamic",
+		Variant = "Dynamic",
 
 		-- FIXME
 		["ShaderVariableType"] = "String",
@@ -163,6 +164,8 @@ function emitOverload(typeName, name, o, types, multirets)
 	for i, v in ipairs(o.arguments or {}) do
 		v.type = typeMap(v.type)
 		types[v.type] = true
+
+		v.name = v.name:match("^\"(.*)\"$") or v.name -- FIXME: workaround for love.event.quit
 
 		if v.name == "..." then
 			table.insert(args, ("args:Rest<%s>"):format(v.type))
