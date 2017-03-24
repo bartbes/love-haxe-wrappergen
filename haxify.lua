@@ -158,7 +158,7 @@ function emitMultiReturnType(name, returns, types)
 	return table.concat(parts)
 end
 
-function emitOverload(name, o, types, multirets)
+function emitOverload(typeName, name, o, types, multirets)
 	local args = {}
 	for i, v in ipairs(o.arguments or {}) do
 		v.type = typeMap(v.type)
@@ -174,8 +174,8 @@ function emitOverload(name, o, types, multirets)
 	local retType = "Void"
 	if o.returns and #o.returns > 1 then
 		-- In case of multiple returns we need to generate a new return type
-		retType = ("%s%sResult"):format(name:sub(1, 1):upper(), name:sub(2))
-		table.insert(multirets, emitMultiReturnType(retType, o.returns, types))
+		retType = typeName .. capitalize(name) .. "Result"
+		multirets[name] = emitMultiReturnType(retType, o.returns, types)
 	elseif o.returns then
 		retType = typeMap(o.returns[1].type)
 		types[retType] = true
@@ -207,12 +207,12 @@ function emitCallback(c, types)
 	return ("\tpublic static var %s : %s;"):format(c.name, type)
 end
 
-function rawEmitFunction(f, types, static, multirets)
+function rawEmitFunction(typeName, f, types, static, multirets)
 	local out = {""}
 
 	local sigs = {}
 	for i, v in ipairs(f.variants) do
-		table.insert(sigs, emitOverload(f.name, v, types, multirets))
+		table.insert(sigs, emitOverload(typeName, f.name, v, types, multirets))
 	end
 
 	local main = table.remove(sigs, 1)
@@ -223,12 +223,12 @@ function rawEmitFunction(f, types, static, multirets)
 	return table.concat(out, "\n")
 end
 
-function emitFunction(f, types, multirets)
-	return rawEmitFunction(f, types, true, multirets)
+function emitFunction(typeName, f, types, multirets)
+	return rawEmitFunction(typeName, f, types, true, multirets)
 end
 
-function emitMethod(m, types, multirets)
-	return rawEmitFunction(m, types, false, multirets)
+function emitMethod(typeName, m, types, multirets)
+	return rawEmitFunction(typeName, m, types, false, multirets)
 end
 
 function emitEnum(e, packageName)
@@ -263,13 +263,13 @@ function emitType(t, packageName)
 	table.insert(out, ("extern class %s extends %s\n{"):format(t.name, superType))
 
 	for i, v in ipairs(t.functions or {}) do
-		table.insert(out, emitMethod(v, types, multirets))
+		table.insert(out, emitMethod(t.name, v, types, multirets))
 	end
 
 	table.insert(out, "}")
 	table.insert(out, 2, resolveImports(types, packageName))
 
-	for i, v in ipairs(multirets) do
+	for i, v in pairs(multirets) do
 		table.insert(out, v)
 	end
 	return {[t.name .. ".hx"] = table.concat(out, "\n")}
@@ -285,11 +285,12 @@ function emitModule(m, luaName)
 	local prefix = moduleName:gsub("%.", "/") .. "/"
 	emitHeader(out, moduleName)
 	table.insert(out, ("@:native(\"%s\")"):format(moduleName))
-	table.insert(out, ("extern class %s"):format(capitalize(luaName or (m.name .. "Module"))))
+	local className = capitalize(luaName or (m.name .. "Module"))
+	table.insert(out, ("extern class %s"):format(className))
 	table.insert(out, "{")
 
 	for i, v in ipairs(m.functions) do
-		table.insert(out, emitFunction(v, types, multirets))
+		table.insert(out, emitFunction(className, v, types, multirets))
 	end
 
 	for i, v in ipairs(m.callbacks or {}) do
@@ -308,10 +309,10 @@ function emitModule(m, luaName)
 
 	table.insert(out, 2, resolveImports(types, moduleName))
 
-	for i, v in ipairs(multirets) do
+	for i, v in pairs(multirets) do
 		table.insert(out, v)
 	end
-	files[prefix .. capitalize(luaName or (m.name .. "Module")) .. ".hx"] = table.concat(out, "\n")
+	files[prefix .. className .. ".hx"] = table.concat(out, "\n")
 	return files
 end
 
