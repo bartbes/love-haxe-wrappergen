@@ -38,30 +38,62 @@ do
 	end
 end
 
-do -- YET ANOTHER UGLY HACK
-	local typeOrder = 
-	{
-		"Object",
-		"Data",
-		"Drawable",
-		"Texture",
-		"Shape",
-		"Joint",
-	}
+do
+	-- The keys are type names, the values are their "priority",
+	-- the most generic base class (Object) has the lowest priority.
+	-- Used to find the most specific supertype later on.
+	local priority = {}
+	priority["Object"] = 0
 
-	local function find(t, value)
-		for i, v in ipairs(t) do
-			if v == value then return i end
-		end
-		print("Unknown supertype: ", value)
+	-- Now we first need a complete registry of types and their supertypes
+	local supertypes = {}
+	for _, type in ipairs(api.types) do
+		supertypes[type.name] = type.supertypes or {}
 	end
 
+	for _, module in ipairs(api.modules) do
+		if module.types then
+			for _, type in ipairs(module.types) do
+				supertypes[type.name] = type.supertypes or {}
+			end
+		end
+		if module.enums then
+			for _, type in ipairs(module.enums) do
+				supertypes[type.name] = type.supertypes or {}
+			end
+		end
+	end
+
+	-- To assign the priority of a type, take the maximum priority of its
+	-- supertypes and add 1.
+	local function assignPriority(name)
+		if priority[name] then
+			-- Priority is known, skip
+			return priority[name]
+		end
+
+		local max = -math.huge
+		for i, v in ipairs(supertypes[name]) do
+			max = math.max(max, assignPriority(v))
+		end
+
+		priority[name] = max+1
+		return max+1
+	end
+
+	-- Now assign all priorities, and dump the type list
+	for i, v in pairs(supertypes) do
+		assignPriority(i)
+	end
+	supertypes = nil
+
+	-- Now we can just return the supertype with the highest priority
 	function mostSpecificSupertype(t)
-		local maxVal, maxPos = "UserData", 0
+		local maxVal, maxPriority = "UserData", -math.huge
 		for i, v in ipairs(t) do
-			local pos = find(typeOrder, v)
-			if pos and pos > maxPos then
-				maxVal, maxPos = v, pos
+			local priority = priority[v]
+			if priority > maxPriority then
+				maxVal, maxPriority = v, priority
 			end
 		end
 		return maxVal
